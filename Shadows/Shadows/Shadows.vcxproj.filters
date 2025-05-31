@@ -2,5 +2,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Utils\Shader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Utils\Shader.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\simpleDepthShader.vs" />
+    <None Include="Shaders\simpleDepthShader.frs" />
   </ItemGroup>
 </Project>
