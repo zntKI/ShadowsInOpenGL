@@ -1,4 +1,5 @@
 #include "Utils/Shader.hpp"
+#include "Utils/Camera.hpp"
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -8,7 +9,18 @@
 
 #include <iostream>
 
+void scrollCallback( GLFWwindow* window, double xpos, double ypos );
+void mouseCallback( GLFWwindow* window, double xposIn, double yposIn );
+void processInput( GLFWwindow* window );
+
 const unsigned int SCREEN_WIDTH = 1920, SCREEN_HEIGHT = 1080;
+
+float deltaTime = 0.0f; // Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+Camera camera( glm::vec3( 0.f, 0.f, 3.f ) );
+bool firstMouse = true;
+float lastX = SCREEN_WIDTH / 2.f, lastY = SCREEN_HEIGHT / 2.f;
 
 int main()
 {
@@ -63,16 +75,28 @@ int main()
 	glBindFramebuffer( GL_FRAMEBUFFER, 0 );
 
 
-	Shader depthShader( "Shaders/simpleDepthShader.vs", "Shaders/simpleDepthShader.frs" );
+	Shader depthShader( "Shaders/simpleDepthShader.vts", "Shaders/simpleDepthShader.frs" );
 
 #pragma endregion
 
 #pragma region RenderLoop
 
+	// input
+	glfwSetInputMode( window, GLFW_CURSOR, GLFW_CURSOR_DISABLED );
+	glfwSetCursorPosCallback( window, mouseCallback );
+	glfwSetScrollCallback( window, scrollCallback );
+
 	/* Loop until the user closes the window */
 	while ( !glfwWindowShouldClose( window ) ) {
 		/* Render here */
 		
+		// Keep track of time
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		// Input
+		processInput( window );
 
 #pragma region FirstPass
 
@@ -121,4 +145,54 @@ int main()
 
 	glfwTerminate();
 	return 0;
+}
+
+void scrollCallback( GLFWwindow* window, double xpos, double ypos )
+{
+	camera.ProcessMouseScroll( static_cast< float >( ypos ) );
+}
+
+void mouseCallback( GLFWwindow* window, double xposIn, double yposIn )
+{
+	float xpos = static_cast< float >( xposIn );
+	float ypos = static_cast< float >( yposIn );
+
+	if ( firstMouse ) // initially set to true
+	{
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos; // reversed
+	lastX = xpos;
+	lastY = ypos;
+
+	camera.ProcessMouseMovement( xoffset, yoffset );
+}
+
+void processInput( GLFWwindow* window )
+{
+	if ( glfwGetKey( window, GLFW_KEY_ESCAPE ) == GLFW_PRESS ) {
+		glfwSetWindowShouldClose( window, true );
+	}
+
+	if ( glfwGetKey( window, GLFW_KEY_LEFT_SHIFT ) == GLFW_PRESS )
+		camera.ProcessKeyboard( MOVE_FAST, deltaTime );
+	else
+		camera.ProcessKeyboard( SLOW_DOWN, deltaTime );
+
+	if ( glfwGetKey( window, GLFW_KEY_W ) == GLFW_PRESS )
+		camera.ProcessKeyboard( FORWARD, deltaTime );
+	if ( glfwGetKey( window, GLFW_KEY_S ) == GLFW_PRESS )
+		camera.ProcessKeyboard( BACKWARD, deltaTime );
+	if ( glfwGetKey( window, GLFW_KEY_A ) == GLFW_PRESS )
+		camera.ProcessKeyboard( LEFT, deltaTime );
+	if ( glfwGetKey( window, GLFW_KEY_D ) == GLFW_PRESS )
+		camera.ProcessKeyboard( RIGHT, deltaTime );
+	if ( glfwGetKey( window, GLFW_KEY_E ) == GLFW_PRESS )
+		camera.ProcessKeyboard( UP, deltaTime );
+	if ( glfwGetKey( window, GLFW_KEY_Q ) == GLFW_PRESS )
+		camera.ProcessKeyboard( DOWN, deltaTime );
 }

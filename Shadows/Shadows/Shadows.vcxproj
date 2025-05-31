@@ -141,15 +141,17 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Utils\Camera.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Utils\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Utils\Camera.hpp" />
     <ClInclude Include="Utils\Shader.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\simpleDepthShader.frs" />
-    <None Include="Shaders\simpleDepthShader.vs" />
+    <None Include="Shaders\simpleDepthShader.vts" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
