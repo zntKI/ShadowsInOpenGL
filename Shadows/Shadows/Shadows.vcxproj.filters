@@ -4,10 +4,15 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Utils\Shader.cpp" />
     <ClCompile Include="Utils\Camera.cpp" />
+    <ClCompile Include="Utils\Mesh.cpp" />
+    <ClCompile Include="Utils\Model.cpp" />
+    <ClCompile Include="Utils\stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Utils\Shader.hpp" />
     <ClInclude Include="Utils\Camera.hpp" />
+    <ClInclude Include="Utils\Mesh.hpp" />
+    <ClInclude Include="Utils\Model.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\simpleDepthShader.vts" />
