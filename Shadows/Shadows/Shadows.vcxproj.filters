@@ -17,5 +17,7 @@
   <ItemGroup>
     <None Include="Shaders\simpleDepthShader.vts" />
     <None Include="Shaders\simpleDepthShader.frs" />
+    <None Include="Shaders\debugQuad.vts" />
+    <None Include="Shaders\debugQuad.frs" />
   </ItemGroup>
 </Project>

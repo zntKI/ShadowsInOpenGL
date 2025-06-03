@@ -1,0 +1,13 @@
+#version 330 core
+
+in vec2 texCoords;
+
+uniform sampler2D u_DepthMap;
+
+out vec4 o_fragColor;
+
+void main()
+{
+	float depthValue = texture(u_DepthMap, texCoords).r; // using r (from rgb) because it is the only defined component since the texture is holding only one depth floating-point value (0.0-1.0) and the others are undefined
+	o_fragColor = vec4(vec3(depthValue), 1.0);
+}

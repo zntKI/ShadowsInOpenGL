@@ -155,6 +155,8 @@
     <ClInclude Include="Utils\Shader.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\debugQuad.frs" />
+    <None Include="Shaders\debugQuad.vts" />
     <None Include="Shaders\simpleDepthShader.frs" />
     <None Include="Shaders\simpleDepthShader.vts" />
   </ItemGroup>
