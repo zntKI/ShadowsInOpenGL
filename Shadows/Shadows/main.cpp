@@ -115,6 +115,7 @@ int main ()
 #pragma region RenderLoop
 
 	glEnable (GL_DEPTH_TEST);
+	glEnable (GL_CULL_FACE);
 
 	// input
 	glfwSetInputMode (window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -159,7 +160,11 @@ int main ()
 		glActiveTexture (GL_TEXTURE0);
 		glBindTexture (GL_TEXTURE_2D, floorTexture);
 
-		renderDepthSceneComplex (depthShader);
+		//renderDepthSceneComplex (depthShader);
+
+		glCullFace (GL_FRONT);
+		renderDepthSceneSimple (depthShader);
+		glCullFace (GL_BACK);
 
 		/* If you want cubes instead of backpack
 		renderDepthSceneSimple (depthShader);
@@ -196,6 +201,8 @@ int main ()
 		shadowShaderSimple.setVec3 ("u_ViewPos", camera.Position);
 
 		renderFloorShadow (shadowShaderSimple);
+		
+		renderCubesShadow (shadowShaderSimple);
 
 		/* If you want cubes instead of backpack
 		renderCubesShadow (shadowShaderSimple);
@@ -216,7 +223,7 @@ int main ()
 		shadowShaderComplex.setMatrix4 ("u_View", view);
 		shadowShaderComplex.setVec3 ("u_ViewPos", camera.Position);
 
-		renderBackpackShadow (shadowShaderComplex);
+		//renderBackpackShadow (shadowShaderComplex);
 
 #pragma endregion
 
@@ -360,12 +367,12 @@ void renderFloor ()
 		float vertices[] = {
 
 			// positions            // normals         // texcoords
-			 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
 			-25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+			 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
 			-25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
 
-			 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
 			-25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+			 25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
 			 25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
 
 		};
