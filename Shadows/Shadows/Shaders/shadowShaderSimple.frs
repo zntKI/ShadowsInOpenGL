@@ -63,5 +63,11 @@ float ShadowCalculation(vec3 fragmentNormal, vec3 lightDir)
 	// float bias = 0.005;
 	// Better way adapting the value based on the angle of the light source
 	float bias = max(0.05 * (1.0 - dot(fragmentNormal, lightDir)), 0.005);
-	return (currentDepth - bias > closestDepth ? 1.0 : 0.0);
+
+	float shadowAmount = (currentDepth - bias > closestDepth ? 1.0 : 0.0);
+
+	if (currentDepth > 1.0)
+		shadowAmount = 0.0;
+
+	return shadowAmount;
 }
