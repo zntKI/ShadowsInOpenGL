@@ -19,5 +19,8 @@
     <None Include="Shaders\simpleDepthShader.frs" />
     <None Include="Shaders\debugQuad.vts" />
     <None Include="Shaders\debugQuad.frs" />
+    <None Include="Shaders\shadowShader.vts" />
+    <None Include="Shaders\shadowShaderComplex.frs" />
+    <None Include="Shaders\shadowShaderSimple.frs" />
   </ItemGroup>
 </Project>

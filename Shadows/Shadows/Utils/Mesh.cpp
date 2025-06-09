@@ -57,8 +57,8 @@ void Mesh::Draw( Shader& shader )
 
 		// tell the sampler2D in which texture unit to look at
 		std::string str = name + number;
-		std::string fullName = "u_Material." + str;
-		shader.setInt( ( "u_Material." + str ).c_str(), i );
+		std::string fullName = /*"u_Material." + */str;
+		shader.setInt(fullName.c_str(), i );
 
 		glBindTexture( GL_TEXTURE_2D, textures[ i ].id );
 	}
