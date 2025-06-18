@@ -26,11 +26,9 @@ Camera camera (glm::vec3 (0.f, 0.f, 3.f));
 bool firstMouse = true;
 float lastX = SCREEN_WIDTH / 2.f, lastY = SCREEN_HEIGHT / 2.f;
 
-void renderDepthSceneComplex (Shader& shader);
 void renderDepthSceneSimple (Shader& shader);
 
 void renderFloorShadow (Shader& shader);
-void renderBackpackShadow (Shader& shader);
 void renderCubesShadow (Shader& shader);
 
 void calculateNormalMat (glm::mat4& modelMat, Shader& shader);
@@ -38,7 +36,6 @@ void calculateNormalMat (glm::mat4& modelMat, Shader& shader);
 // TODO: maybe make a class that represents code-defined simple objects to reduce code clutter in main
 void renderFloor ();
 void renderCube ();
-Model* backpack;
 
 void renderQuad ();
 
@@ -70,10 +67,6 @@ int main ()
 #pragma endregion
 
 #pragma region Main
-
-	stbi_set_flip_vertically_on_load (true);
-
-	backpack = new Model ("Assets/Models/Backpack/backpack.obj");
 
 	unsigned int depthMapFBO;
 	glGenFramebuffers (1, &depthMapFBO);
@@ -109,9 +102,6 @@ int main ()
 	unsigned int floorTexture = loadTexture ("Assets/Textures/wall.jpg");
 	shadowShaderSimple.setInt ("u_TexDiffuse", 0);
 
-	Shader shadowShaderComplex ("Shaders/shadowShader.vts", "Shaders/shadowShaderComplex.frs");
-	shadowShaderComplex.setInt ("u_ShadowMap", 2);
-
 #pragma endregion
 
 #pragma region RenderLoop
@@ -126,6 +116,8 @@ int main ()
 
 	glm::vec3 lightPos (-2.f, 4.f, -1.f);
 
+	int fpsCounter = 0;
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose (window)) {
 		/* Render here */
@@ -134,6 +126,10 @@ int main ()
 		float currentFrame = glfwGetTime ();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+
+		if (fpsCounter % 50 == 0)
+			std::cout << 1 / deltaTime << " fps\n";
+		fpsCounter++;
 
 		// Input
 		processInput (window);
@@ -162,15 +158,9 @@ int main ()
 		glActiveTexture (GL_TEXTURE0);
 		glBindTexture (GL_TEXTURE_2D, floorTexture);
 
-		//renderDepthSceneComplex (depthShader);
-
 		glCullFace (GL_FRONT);
 		renderDepthSceneSimple (depthShader);
 		glCullFace (GL_BACK);
-
-		/* If you want cubes instead of backpack
-		renderDepthSceneSimple (depthShader);
-		*/
 
 #pragma endregion
 
@@ -203,29 +193,8 @@ int main ()
 		shadowShaderSimple.setVec3 ("u_ViewPos", camera.Position);
 
 		renderFloorShadow (shadowShaderSimple);
-		
+
 		renderCubesShadow (shadowShaderSimple);
-
-		/* If you want cubes instead of backpack
-		renderCubesShadow (shadowShaderSimple);
-		*/
-
-		
-		shadowShaderComplex.use ();
-
-		glActiveTexture (GL_TEXTURE2);
-		glBindTexture (GL_TEXTURE_2D, depthMap);
-
-		// TODO: Use UBO's
-
-		shadowShaderComplex.setMatrix4 ("u_LightSpaceMatrix", lightSpaceMatrix);
-		shadowShaderComplex.setVec3 ("u_LightPos", lightPos);
-
-		shadowShaderComplex.setMatrix4 ("u_Proj", projection);
-		shadowShaderComplex.setMatrix4 ("u_View", view);
-		shadowShaderComplex.setVec3 ("u_ViewPos", camera.Position);
-
-		//renderBackpackShadow (shadowShaderComplex);
 
 #pragma endregion
 
@@ -238,44 +207,8 @@ int main ()
 
 #pragma endregion
 
-	delete backpack;
-
 	glfwTerminate ();
 	return 0;
-}
-
-void renderDepthSceneComplex (Shader& shader)
-{
-	// floor
-	glm::mat4 model = glm::mat4 (1.f);
-	shader.setMatrix4 ("u_Model", model);
-	renderFloor ();
-
-	// backpack(s)
-	model = glm::mat4 (1.f);
-	model = glm::translate (model, glm::vec3 (0.0f, 1.f, 0.0f));
-	model = glm::scale (model, glm::vec3 (0.5f));
-	shader.setMatrix4 ("u_Model", model);
-	backpack->Draw (shader);
-
-
-	//// cubes
-	//model = glm::mat4 (1.0f);
-	//model = glm::translate (model, glm::vec3 (0.0f, 1.5f, 0.0));
-	//model = glm::scale (model, glm::vec3 (0.5f));
-	//shader.setMatrix4 ("u_Model", model);
-	//renderCube ();
-	//model = glm::mat4 (1.0f);
-	//model = glm::translate (model, glm::vec3 (2.0f, 0.0f, 1.0));
-	//model = glm::scale (model, glm::vec3 (0.5f));
-	//shader.setMatrix4 ("u_Model", model);
-	//renderCube ();
-	//model = glm::mat4 (1.0f);
-	//model = glm::translate (model, glm::vec3 (-1.0f, 0.0f, 2.0));
-	//model = glm::rotate (model, glm::radians (60.0f), glm::normalize (glm::vec3 (1.0, 0.0, 1.0)));
-	//model = glm::scale (model, glm::vec3 (0.25));
-	//shader.setMatrix4 ("u_Model", model);
-	//renderCube ();
 }
 
 void renderDepthSceneSimple (Shader& shader)
@@ -312,18 +245,6 @@ void renderFloorShadow (Shader& shader)
 	calculateNormalMat (model, shader);
 
 	renderFloor ();
-}
-
-void renderBackpackShadow (Shader& shader)
-{
-	glm::mat4 model = glm::mat4 (1.f);
-	model = glm::translate (model, glm::vec3 (0.0f, 1.f, 0.0f));
-	model = glm::scale (model, glm::vec3 (0.5f));
-	shader.setMatrix4 ("u_Model", model);
-
-	calculateNormalMat (model, shader);
-
-	backpack->Draw (shader);
 }
 
 void renderCubesShadow (Shader& shader)
