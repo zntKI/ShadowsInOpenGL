@@ -68,9 +68,9 @@ float ShadowCalculation(vec3 fragmentNormal, vec3 lightDir)
 	// PCF:
 	float shadowAmount = 0.0;
 	vec2 texelSize = 1.0 / textureSize(u_ShadowMap, 0);
-	for(int x = -1; x <= 1; ++x)
+	for(int x = -2; x <= 20; ++x)
 	{
-		for(int y = -1; y <= 1; ++y)
+		for(int y = -20; y <= 20; ++y)
 		{
 			float pcfDepth = texture(u_ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
 			shadowAmount += currentDepth - bias > pcfDepth ? 1.0 : 0.0;

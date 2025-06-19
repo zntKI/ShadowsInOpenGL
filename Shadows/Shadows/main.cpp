@@ -127,7 +127,8 @@ int main ()
 	float previousTime = glfwGetTime ();
 	int frameCount = 0;
 
-	std::fstream fpsFile (filePath, std::fstream::trunc);
+	std::fstream fpsFile (filePath, std::fstream::out | std::fstream::trunc);
+	fpsFile.close ();
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose (window)) {
@@ -141,7 +142,7 @@ int main ()
 		frameCount++;
 		if (currentFrame - previousTime >= 1.0f)
 		{
-			float fps = frameCount / (currentFrame - previousTime);
+			float fps = 1.0f / deltaTime;
 
 			//std::cout << fps << " fps\n";
 			addFpsToFile (fps);
