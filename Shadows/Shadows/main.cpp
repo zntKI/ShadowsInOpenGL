@@ -11,6 +11,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <iostream>
+#include <fstream>
 
 void scrollCallback (GLFWwindow* window, double xpos, double ypos);
 void mouseCallback (GLFWwindow* window, double xposIn, double yposIn);
@@ -39,6 +40,10 @@ void renderCube ();
 
 void renderQuad ();
 
+std::string filePath = "fpsCollector.txt";
+void addFpsToFile (float fpsToAdd);
+float getAverageFpsFromFile ();
+
 int main ()
 {
 #pragma region Setup
@@ -63,6 +68,9 @@ int main ()
 		std::cout << "Glew failed to init!" << std::endl;
 		return -1;
 	}
+
+	// Uncomment if you want to enable VSync (not recommended for performance testing)
+	//glfwSwapInterval (1);
 
 #pragma endregion
 
@@ -116,7 +124,10 @@ int main ()
 
 	glm::vec3 lightPos (-2.f, 4.f, -1.f);
 
-	int fpsCounter = 0;
+	float previousTime = glfwGetTime ();
+	int frameCount = 0;
+
+	std::fstream fpsFile (filePath, std::fstream::trunc);
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose (window)) {
@@ -127,9 +138,17 @@ int main ()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		if (fpsCounter % 50 == 0)
-			std::cout << 1 / deltaTime << " fps\n";
-		fpsCounter++;
+		frameCount++;
+		if (currentFrame - previousTime >= 1.0f)
+		{
+			float fps = frameCount / (currentFrame - previousTime);
+
+			//std::cout << fps << " fps\n";
+			addFpsToFile (fps);
+
+			frameCount = 0;
+			previousTime = currentFrame;
+		}
 
 		// Input
 		processInput (window);
@@ -198,7 +217,6 @@ int main ()
 
 #pragma endregion
 
-
 		/* Swap front and back buffers */
 		glfwSwapBuffers (window);
 		/* Poll for and process events */
@@ -206,6 +224,8 @@ int main ()
 	}
 
 #pragma endregion
+
+	std::cout << getAverageFpsFromFile () << " average fps\n";
 
 	glfwTerminate ();
 	return 0;
@@ -520,4 +540,34 @@ unsigned int loadTexture (char const* path)
 	}
 
 	return textureID;
+}
+
+void addFpsToFile (float fpsToAdd)
+{
+	// Append an fps to the end of the file
+
+	std::ofstream fpsFile (filePath, std::ios::app);
+	fpsFile << fpsToAdd << "\n";
+	fpsFile.close ();
+
+}
+
+float getAverageFpsFromFile ()
+{
+	// Read all fps values from the file at the end of the program and calculate the average to be outputted to the console
+
+	std::ifstream fpsFile (filePath);
+
+	int fpsCount = 0;
+	float fpsSum = 0.f;
+
+	std::string line;
+	while (std::getline(fpsFile, line))
+	{
+		fpsSum += std::stof (line);
+		fpsCount++;
+	}
+
+	return fpsSum / fpsCount;
+
 }
