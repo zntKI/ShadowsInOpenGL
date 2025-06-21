@@ -22,5 +22,7 @@
     <None Include="Shaders\shadowShader.vts" />
     <None Include="Shaders\shadowShaderComplex.frs" />
     <None Include="Shaders\shadowShaderSimple.frs" />
+    <None Include="Shaders\lightShader.vts" />
+    <None Include="Shaders\lightShader.frs" />
   </ItemGroup>
 </Project>

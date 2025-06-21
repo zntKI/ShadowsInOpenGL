@@ -29,6 +29,7 @@ float lastX = SCREEN_WIDTH / 2.f, lastY = SCREEN_HEIGHT / 2.f;
 
 void renderDepthSceneSimple (Shader& shader);
 
+void renderLight (Shader& shader, glm::vec3& lightPos);
 void renderFloorShadow (Shader& shader);
 void renderCubesShadow (Shader& shader);
 
@@ -109,6 +110,8 @@ int main ()
 
 	unsigned int floorTexture = loadTexture ("Assets/Textures/wall.jpg");
 	shadowShaderSimple.setInt ("u_TexDiffuse", 0);
+
+	Shader lightShader ("Shaders/lightShader.vts", "Shaders/lightShader.frs");
 
 #pragma endregion
 
@@ -214,6 +217,13 @@ int main ()
 
 		renderCubesShadow (shadowShaderSimple);
 
+		lightShader.use ();
+
+		lightShader.setMatrix4 ("u_Proj", projection);
+		lightShader.setMatrix4 ("u_View", view);
+
+		renderLight (lightShader, lightPos);
+
 #pragma endregion
 
 		/* Swap front and back buffers */
@@ -253,6 +263,16 @@ void renderDepthSceneSimple (Shader& shader)
 	model = glm::rotate (model, glm::radians (60.0f), glm::normalize (glm::vec3 (1.0, 0.0, 1.0)));
 	model = glm::scale (model, glm::vec3 (0.25));
 	shader.setMatrix4 ("u_Model", model);
+	renderCube ();
+}
+
+void renderLight (Shader& shader, glm::vec3& lightPos)
+{
+	glm::mat4 model = glm::mat4 (1.0f);
+	model = glm::translate (model, lightPos);
+	model = glm::scale (model, glm::vec3 (.1f));
+	shader.setMatrix4 ("u_Model", model);
+
 	renderCube ();
 }
 
