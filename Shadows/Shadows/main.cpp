@@ -16,6 +16,7 @@
 void scrollCallback (GLFWwindow* window, double xpos, double ypos);
 void mouseCallback (GLFWwindow* window, double xposIn, double yposIn);
 void processInput (GLFWwindow* window);
+void processLightInput (GLFWwindow* window, glm::vec3& lightPos, float deltaTime);
 unsigned int loadTexture (const char* path);
 
 const unsigned int SCREEN_WIDTH = 1920, SCREEN_HEIGHT = 1080;
@@ -155,6 +156,8 @@ int main ()
 		// Input
 		processInput (window);
 
+		processLightInput (window, lightPos, deltaTime);
+
 #pragma region FirstPass
 
 		glBindFramebuffer (GL_FRAMEBUFFER, depthMapFBO);
@@ -234,6 +237,7 @@ int main ()
 
 #pragma endregion
 
+	std::cout << "Light pos: " << lightPos.x << ", " << lightPos.y << ", " << lightPos.z << "\n";
 	std::cout << getAverageFpsFromFile () << " average fps\n";
 
 	glfwTerminate ();
@@ -522,6 +526,44 @@ void processInput (GLFWwindow* window)
 		camera.ProcessKeyboard (UP, deltaTime);
 	if (glfwGetKey (window, GLFW_KEY_Q) == GLFW_PRESS)
 		camera.ProcessKeyboard (DOWN, deltaTime);
+}
+
+void processLightInput (GLFWwindow* window, glm::vec3& lightPos, float deltaTime)
+{
+	float amountToMove = 1.f * deltaTime;
+
+	if (glfwGetKey (window, GLFW_KEY_UP) == GLFW_PRESS
+		&& glfwGetKey (window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		lightPos.z -= amountToMove;
+		lightPos.x -= amountToMove;
+	}
+	else if (glfwGetKey (window, GLFW_KEY_UP) == GLFW_PRESS
+		&& glfwGetKey (window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		lightPos.z -= amountToMove;
+		lightPos.x += amountToMove;
+	}
+	else if (glfwGetKey (window, GLFW_KEY_DOWN) == GLFW_PRESS
+		&& glfwGetKey (window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		lightPos.z += amountToMove;
+		lightPos.x -= amountToMove;
+	}
+	else if (glfwGetKey (window, GLFW_KEY_DOWN) == GLFW_PRESS
+		&& glfwGetKey (window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		lightPos.z += amountToMove;
+		lightPos.x += amountToMove;
+	}
+	else if (glfwGetKey (window, GLFW_KEY_UP) == GLFW_PRESS)
+		lightPos.y += amountToMove;
+	else if (glfwGetKey (window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		lightPos.y -= amountToMove;
+	else if (glfwGetKey (window, GLFW_KEY_LEFT) == GLFW_PRESS)
+		lightPos.x -= amountToMove;
+	else if (glfwGetKey (window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		lightPos.x += amountToMove;
 }
 
 unsigned int loadTexture (char const* path)
