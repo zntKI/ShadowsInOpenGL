@@ -60,11 +60,6 @@ float ShadowCalculation(vec3 fragmentNormal, vec3 lightDir)
 	if (currentDepth > 1.0)
 		return 0.0;
 
-	// Simple way to reduce shadow acne
-	// float bias = 0.005;
-	// Better way adapting the value based on the angle of the light source
-	float bias = max(0.05 * (1.0 - dot(fragmentNormal, lightDir)), 0.005);
-
 	float shadowAmount = 0.0;
 
 	// Without PCF:
@@ -78,7 +73,7 @@ float ShadowCalculation(vec3 fragmentNormal, vec3 lightDir)
 		for(int y = -1; y <= 1; ++y)
 		{
 			float pcfDepth = texture(u_ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-			shadowAmount += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+			shadowAmount += currentDepth > pcfDepth ? 1.0 : 0.0;
 		}
 	}
 	shadowAmount /= 9.0;

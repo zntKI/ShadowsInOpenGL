@@ -119,14 +119,14 @@ int main ()
 #pragma region RenderLoop
 
 	glEnable (GL_DEPTH_TEST);
-	//glEnable (GL_CULL_FACE);
+	glEnable (GL_CULL_FACE);
 
 	// input
 	glfwSetInputMode (window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	glfwSetCursorPosCallback (window, mouseCallback);
 	glfwSetScrollCallback (window, scrollCallback);
 
-	glm::vec3 lightPos (-2.f, 4.f, -1.f);
+	glm::vec3 lightPos (-2, 4, -1);
 
 	float previousTime = glfwGetTime ();
 	int frameCount = 0;
@@ -182,9 +182,9 @@ int main ()
 		glActiveTexture (GL_TEXTURE0);
 		glBindTexture (GL_TEXTURE_2D, floorTexture);
 
-		//glCullFace (GL_FRONT);
+		glCullFace (GL_FRONT);
 		renderDepthSceneSimple (depthShader);
-		//glCullFace (GL_BACK);
+		glCullFace (GL_BACK);
 
 #pragma endregion
 
@@ -246,13 +246,8 @@ int main ()
 
 void renderDepthSceneSimple (Shader& shader)
 {
-	// floor
-	glm::mat4 model = glm::mat4 (1.f);
-	shader.setMatrix4 ("u_Model", model);
-	renderFloor ();
-
 	// cubes
-	model = glm::mat4 (1.0f);
+	glm::mat4 model = glm::mat4 (1.0f);
 	model = glm::translate (model, glm::vec3 (0.0f, 1.5f, 0.0));
 	model = glm::scale (model, glm::vec3 (0.5f));
 	shader.setMatrix4 ("u_Model", model);
