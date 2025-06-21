@@ -115,7 +115,7 @@ int main ()
 #pragma region RenderLoop
 
 	glEnable (GL_DEPTH_TEST);
-	glEnable (GL_CULL_FACE);
+	//glEnable (GL_CULL_FACE);
 
 	// input
 	glfwSetInputMode (window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -143,8 +143,6 @@ int main ()
 		if (currentFrame - previousTime >= 1.0f)
 		{
 			float fps = 1.0f / deltaTime;
-
-			//std::cout << fps << " fps\n";
 			addFpsToFile (fps);
 
 			frameCount = 0;
@@ -178,9 +176,9 @@ int main ()
 		glActiveTexture (GL_TEXTURE0);
 		glBindTexture (GL_TEXTURE_2D, floorTexture);
 
-		glCullFace (GL_FRONT);
+		//glCullFace (GL_FRONT);
 		renderDepthSceneSimple (depthShader);
-		glCullFace (GL_BACK);
+		//glCullFace (GL_BACK);
 
 #pragma endregion
 
@@ -548,16 +546,30 @@ void addFpsToFile (float fpsToAdd)
 	// Append an fps to the end of the file
 
 	std::ofstream fpsFile (filePath, std::ios::app);
-	fpsFile << fpsToAdd << "\n";
-	fpsFile.close ();
+
+	if (!fpsFile.fail ())
+	{
+		fpsFile << fpsToAdd << "\n";
+		fpsFile.close ();
+	}
+	else
+	{
+		std::cerr << "File to write failed to open\n";
+	}
 
 }
 
 float getAverageFpsFromFile ()
 {
 	// Read all fps values from the file at the end of the program and calculate the average to be outputted to the console
+	// Append the average at the end of the file for backupt reasons
 
-	std::ifstream fpsFile (filePath);
+	std::fstream fpsFile (filePath, std::fstream::in); // Open for reading and calculating the average fps
+	if (fpsFile.fail ())
+	{
+		std::cerr << "File to read failed to open\n";
+		return -1.f;
+	}
 
 	int fpsCount = 0;
 	float fpsSum = 0.f;
@@ -569,6 +581,20 @@ float getAverageFpsFromFile ()
 		fpsCount++;
 	}
 
-	return fpsSum / fpsCount;
+	float average = fpsSum / fpsCount;
+
+	fpsFile.close ();
+
+	fpsFile.open (filePath, std::fstream::out | std::fstream::app); // Open for writing the average fps at the end of the file
+	if (fpsFile.fail ())
+	{
+		std::cerr << "File to write failed to open\n";
+		return -1.f;
+	}
+
+	fpsFile << "\nAverage fps: " << average << "\n";
+	fpsFile.close ();
+
+	return average;
 
 }
