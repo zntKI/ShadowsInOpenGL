@@ -7,8 +7,11 @@
 
 #include <stb_image.h>
 
+#define GLM_ENABLE_EXPERIMENTAL // For vector rotation
+
 #include <GLM/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
+#include <GLM/gtc/matrix_transform.hpp>
+#include <glm/gtx/rotate_vector.hpp> // For vector rotation
 
 #include <iostream>
 #include <fstream>
@@ -17,6 +20,7 @@ void scrollCallback (GLFWwindow* window, double xpos, double ypos);
 void mouseCallback (GLFWwindow* window, double xposIn, double yposIn);
 void processInput (GLFWwindow* window);
 void processLightInput (GLFWwindow* window, glm::vec3& lightPos, float deltaTime);
+bool processNrSamplesInput (GLFWwindow* window);
 unsigned int loadTexture (const char* path);
 
 const unsigned int SCREEN_WIDTH = 1920, SCREEN_HEIGHT = 1080;
@@ -29,6 +33,8 @@ bool firstMouse = true;
 float lastX = SCREEN_WIDTH / 2.f, lastY = SCREEN_HEIGHT / 2.f;
 
 void renderDepthSceneSimple (Shader& shader);
+
+void calculateSamples (Shader& shader);
 
 void renderLight (Shader& shader, glm::vec3& lightPos);
 void renderFloorShadow (Shader& shader);
@@ -45,6 +51,16 @@ void renderQuad ();
 std::string filePath = "fpsCollector.txt";
 void addFpsToFile (float fpsToAdd);
 float getAverageFpsFromFile ();
+
+int nrSamples = 12;
+float sampleRadius = 0.f;
+
+/*
+
+It is better to have a higher res depth map and smaller amount of samples and radius
+instead of lower res text and higher amount of samples and larger radius
+
+*/
 
 int main ()
 {
@@ -81,7 +97,7 @@ int main ()
 	unsigned int depthMapFBO;
 	glGenFramebuffers (1, &depthMapFBO);
 
-	const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+	const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
 	unsigned int depthMap;
 	glGenTextures (1, &depthMap);
@@ -134,6 +150,14 @@ int main ()
 	std::fstream fpsFile (filePath, std::fstream::out | std::fstream::trunc);
 	fpsFile.close ();
 
+
+	// For a start sampleRadius, we are going to take the width/height of the currently bound depth map:
+	//sampleRadius = 1 / (float)SHADOW_WIDTH;
+	sampleRadius = 0.00067656f;
+
+	calculateSamples (shadowShaderSimple);
+
+
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose (window)) {
 		/* Render here */
@@ -157,6 +181,13 @@ int main ()
 		processInput (window);
 
 		processLightInput (window, lightPos, deltaTime);
+
+		if (processNrSamplesInput (window))
+		{
+			std::cout << nrSamples << " samples and " << sampleRadius << " radius\n";
+
+			calculateSamples (shadowShaderSimple);
+		}
 
 #pragma region FirstPass
 
@@ -263,6 +294,24 @@ void renderDepthSceneSimple (Shader& shader)
 	model = glm::scale (model, glm::vec3 (0.25));
 	shader.setMatrix4 ("u_Model", model);
 	renderCube ();
+}
+
+void calculateSamples (Shader& shader)
+{
+	float angleBetweenEachDir = glm::two_pi<float> () / nrSamples;
+	glm::vec2 sampleDir = glm::vec2 (1.0f, 0.0f);
+
+	shader.use ();
+
+	shader.setFloat ("u_SampleRadius", sampleRadius);
+	shader.setInt ("u_SamplesAmount", nrSamples);
+
+	for (int i = 0; i < nrSamples; i++)
+	{
+		glm::vec2 sample = glm::rotate (sampleDir, angleBetweenEachDir * i) * sampleRadius;
+
+		shader.setVec2 ("u_Samples[" + std::to_string (i) + "]", sample);
+	}
 }
 
 void renderLight (Shader& shader, glm::vec3& lightPos)
@@ -559,6 +608,68 @@ void processLightInput (GLFWwindow* window, glm::vec3& lightPos, float deltaTime
 		lightPos.x -= amountToMove;
 	else if (glfwGetKey (window, GLFW_KEY_RIGHT) == GLFW_PRESS)
 		lightPos.x += amountToMove;
+}
+
+bool processNrSamplesInput (GLFWwindow* window)
+{
+	static bool addPressed = false, subtrPressed = false, multPressed = false, dividePressed = false;
+	if (glfwGetKey (window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
+		addPressed = true;
+	else if (glfwGetKey (window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS)
+		subtrPressed = true;
+	else if (glfwGetKey (window, GLFW_KEY_KP_MULTIPLY) == GLFW_PRESS)
+		multPressed = true;
+	else if (glfwGetKey (window, GLFW_KEY_KP_DIVIDE) == GLFW_PRESS)
+		dividePressed = true;
+
+	if (addPressed && glfwGetKey (window, GLFW_KEY_KP_ADD) == GLFW_RELEASE)
+	{
+		addPressed = false;
+
+		nrSamples++;
+		if (nrSamples > 32)
+		{
+			nrSamples = 32;
+			return false;
+		}
+
+		return true;
+	}
+	else if (subtrPressed && glfwGetKey (window, GLFW_KEY_KP_SUBTRACT) == GLFW_RELEASE)
+	{
+		subtrPressed = false;
+
+		nrSamples--;
+		if (nrSamples < 3)
+		{
+			nrSamples = 3;
+			return false;
+		}
+
+		return true;
+	}
+	else if (multPressed && glfwGetKey (window, GLFW_KEY_KP_MULTIPLY) == GLFW_RELEASE)
+	{
+		sampleRadius += 0.0001f;
+
+		multPressed = false;
+		return true;
+	}
+	else if (dividePressed && glfwGetKey (window, GLFW_KEY_KP_DIVIDE) == GLFW_RELEASE)
+	{
+		dividePressed = false;
+
+		sampleRadius -= 0.0001f;
+		if (sampleRadius < 0.f)
+		{
+			sampleRadius = 0.f;
+			return false;
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 unsigned int loadTexture (char const* path)
