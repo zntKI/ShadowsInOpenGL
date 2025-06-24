@@ -89,5 +89,8 @@ float shadowCalculation(vec3 fragmentNormal, vec3 lightDir)
 
 float rand(vec2 co)
 {
-    return fract(sin(dot(co ,vec2(12.9898, 78.233))) * 43758.5453);
+    float rndFromZeroToOne = fract(sin(dot(co ,vec2(12.9898, 78.233))) * 43758.5453);
+
+	// Make it from -1 to 1
+	return rndFromZeroToOne * 2.0 - 1.0;
 }
