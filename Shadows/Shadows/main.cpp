@@ -16,6 +16,7 @@
 #include <iostream>
 #include <fstream>
 
+// Input methods
 void scrollCallback (GLFWwindow* window, double xpos, double ypos);
 void mouseCallback (GLFWwindow* window, double xposIn, double yposIn);
 void processInput (GLFWwindow* window);
@@ -25,13 +26,16 @@ unsigned int loadTexture (const char* path);
 
 const unsigned int SCREEN_WIDTH = 1920, SCREEN_HEIGHT = 1080;
 
+// For FPS
 float deltaTime = 0.0f; // Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
+// Camera options
 Camera camera (glm::vec3 (0.f, 0.f, 3.f));
 bool firstMouse = true;
 float lastX = SCREEN_WIDTH / 2.f, lastY = SCREEN_HEIGHT / 2.f;
 
+// Rendering methods
 void renderDepthSceneSimple (Shader& shader);
 
 void calculateSamples (Shader& shader);
@@ -42,29 +46,61 @@ void renderCubesShadow (Shader& shader);
 
 void calculateNormalMat (glm::mat4& modelMat, Shader& shader);
 
-// TODO: maybe make a class that represents code-defined simple objects to reduce code clutter in main
 void renderFloor ();
 void renderCube ();
 
-void renderQuad ();
-
+// File IO
 std::string filePath = "fpsCollector.txt";
 void addFpsToFile (float fpsToAdd);
 float getAverageFpsFromFile ();
 
-int nrSamples = 12;
+// Samples vars
+int nrSamples = 0;
 float sampleRadius = 0.f;
 
 /*
 
-It is better to have a higher res depth map and smaller amount of samples and radius
-instead of lower res text and higher amount of samples and larger radius
+=========================
+		How to Use
+=========================
+
+Movement Controls:
+- W/A/S/D        Move forward/left/back/right
+- Q/E            Move down/up
+- SHIFT          Move faster
+- Mouse Move     Look around
+- Scroll Wheel   Zoom in/out (adjust FOV)
+
+Light Movement:
+- Arrow Keys                 Move the light source in X/Y directions
+- Arrow Key Combos:
+	- UP + LEFT / RIGHT      Move light forward-left / forward-right
+	- DOWN + LEFT / RIGHT    Move light backward-left / backward-right
+
+Shadow Sampling (PCF) Controls:
+- Keypad +        Increase number of shadow samples (max: 32)
+- Keypad -        Decrease number of shadow samples (min: 3)
+- Keypad *        Increase sample radius
+- Keypad /        Decrease sample radius (min: 0)
+
+Shadow Settings:
+- Shadow resolution: Change SHADOW_WIDTH / SHADOW_HEIGHT in code
+- Shadow map uses front-face culling for better accuracy
+
+FPS Logging:
+- Outputs FPS once per second to "fpsCollector.txt"
+- Prints average FPS after closing the app
+- To time a test for a fixed duration, uncomment the relevant code in the main loop
+
+Notes:
+- VSync is disabled for raw performance measurements (enable with glfwSwapInterval(1) if needed)
+- Default texture: wall.jpg (replace with your own in loadTexture)
 
 */
 
 int main ()
 {
-#pragma region Setup
+#pragma region WindowSetup
 
 	GLFWwindow* window;
 
@@ -92,11 +128,12 @@ int main ()
 
 #pragma endregion
 
-#pragma region Main
+#pragma region ShadowMappingSetup
 
 	unsigned int depthMapFBO;
 	glGenFramebuffers (1, &depthMapFBO);
 
+	// Change here if you want to change the resolution of the shadow map
 	const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
 	unsigned int depthMap;
@@ -132,7 +169,7 @@ int main ()
 
 #pragma endregion
 
-#pragma region RenderLoop
+#pragma region PreRenderSetup
 
 	glEnable (GL_DEPTH_TEST);
 	glEnable (GL_CULL_FACE);
@@ -142,21 +179,32 @@ int main ()
 	glfwSetCursorPosCallback (window, mouseCallback);
 	glfwSetScrollCallback (window, scrollCallback);
 
+	// Change here if you want to change the start position of the light
 	glm::vec3 lightPos (-2, 4, -1);
 
+	// Frame calculation setup
 	float previousTime = glfwGetTime ();
-	int frameCount = 0;
 
+	// Clear the log file before each execution of the program in order to store only new fps data
 	std::fstream fpsFile (filePath, std::fstream::out | std::fstream::trunc);
 	fpsFile.close ();
 
+	// Change here if you would like to start with a different number of samples
+	nrSamples = 12;
+	// Change here if you would like to start with a different sample radius
+	sampleRadius = 1 / (float)SHADOW_WIDTH;
 
-	// For a start sampleRadius, we are going to take the width/height of the currently bound depth map:
-	//sampleRadius = 1 / (float)SHADOW_WIDTH;
-	sampleRadius = 0.00067656f;
-
+	// Initially calculate samples to feed the shader with any data for the first render
 	calculateSamples (shadowShaderSimple);
 
+	// Counter for timing performance tests
+	int secondsCounter = 0;
+
+	std::cout << "Output during rendering:\n\n";
+
+#pragma endregion
+
+#pragma region RenderLoop
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose (window)) {
@@ -167,29 +215,41 @@ int main ()
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		frameCount++;
 		if (currentFrame - previousTime >= 1.0f)
 		{
 			float fps = 1.0f / deltaTime;
 			addFpsToFile (fps);
 
-			frameCount = 0;
 			previousTime = currentFrame;
+
+			// Uncomment this if you would like to time performance test for a given time period
+			// Done for the purpose of more reliable test results
+			/**
+			secondsCounter++;
+			if (secondsCounter == 10)
+			{
+				glfwSetWindowShouldClose (window, true);
+			}
+			/**/
 		}
 
 		// Input
+		if (glfwGetKey (window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+			glfwSetWindowShouldClose (window, true);
+		}
+
 		processInput (window);
 
 		processLightInput (window, lightPos, deltaTime);
 
-		if (processNrSamplesInput (window))
+		if (processNrSamplesInput (window)) // Recalculate samples only if any parameter has changed
 		{
 			std::cout << nrSamples << " samples and " << sampleRadius << " radius\n";
 
 			calculateSamples (shadowShaderSimple);
 		}
 
-#pragma region FirstPass
+#pragma region FirstPass_WritingToDepthTexture
 
 		glBindFramebuffer (GL_FRAMEBUFFER, depthMapFBO);
 		glViewport (0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
@@ -213,6 +273,7 @@ int main ()
 		glActiveTexture (GL_TEXTURE0);
 		glBindTexture (GL_TEXTURE_2D, floorTexture);
 
+		// Cull the front faces and use the back faces for calculating the shadows for more accurate results
 		glCullFace (GL_FRONT);
 		renderDepthSceneSimple (depthShader);
 		glCullFace (GL_BACK);
@@ -220,7 +281,7 @@ int main ()
 #pragma endregion
 
 
-#pragma region SecondPass
+#pragma region SecondPass_RenderingTheFinalScene
 
 		glBindFramebuffer (GL_FRAMEBUFFER, 0);
 		glViewport (0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -228,7 +289,13 @@ int main ()
 
 		// Configure shader and matrices
 
-		// View matrix
+		// Uncomment this if you want a static position for the camera
+		/**
+		camera.Position = glm::vec3 (2.82838, 0.360989, 2.26124);
+		camera.Front = glm::vec3 (-0.00256063, -0.679442, -0.733724);
+		camera.Up = glm::vec3 (-0.00237118, 0.733729, -0.679438);
+		/**/
+
 		glm::mat4 view = camera.GetViewMatrix ();
 		// Projection matrix
 		glm::mat4 projection = glm::perspective (glm::radians (camera.Zoom), SCREEN_WIDTH / (float)SCREEN_HEIGHT, .1f, 100.f);
@@ -248,7 +315,6 @@ int main ()
 		shadowShaderSimple.setVec3 ("u_ViewPos", camera.Position);
 
 		renderFloorShadow (shadowShaderSimple);
-
 		renderCubesShadow (shadowShaderSimple);
 
 		lightShader.use ();
@@ -268,7 +334,8 @@ int main ()
 
 #pragma endregion
 
-	std::cout << "Light pos: " << lightPos.x << ", " << lightPos.y << ", " << lightPos.z << "\n";
+	std::cout << "Output after end of rendering:\n\n";
+
 	std::cout << getAverageFpsFromFile () << " average fps\n";
 
 	glfwTerminate ();
@@ -296,6 +363,10 @@ void renderDepthSceneSimple (Shader& shader)
 	renderCube ();
 }
 
+/// <summary>
+/// Calculate sample offset vectors in a circular fashion away from the the fragment position
+/// </summary>
+/// <param name="shader">Shader to set parameters to</param>
 void calculateSamples (Shader& shader)
 {
 	float angleBetweenEachDir = glm::two_pi<float> () / nrSamples;
@@ -488,39 +559,6 @@ void renderCube ()
 	glBindVertexArray (0);
 }
 
-unsigned int quadVAO = 0, quadVBO = 0;
-void renderQuad ()
-{
-	if (quadVAO == 0)
-	{
-		float quadVertices[] = {
-			// positions        // texture Coords
-			-1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
-			-1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
-			 1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
-			 1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
-		};
-		glGenVertexArrays (1, &quadVAO);
-		glBindVertexArray (quadVAO);
-
-		glGenBuffers (1, &quadVBO);
-		glBindBuffer (GL_ARRAY_BUFFER, quadVBO);
-
-		glBufferData (GL_ARRAY_BUFFER, sizeof (quadVertices), &quadVertices, GL_STATIC_DRAW);
-		glEnableVertexAttribArray (0);
-		glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof (float), (void*)0);
-		glEnableVertexAttribArray (1);
-		glVertexAttribPointer (1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof (float), (void*)(3 * sizeof (float)));
-
-		glBindBuffer (GL_ARRAY_BUFFER, 0);
-		glBindVertexArray (0);
-	}
-
-	glBindVertexArray (quadVAO);
-	glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
-	glBindVertexArray (0);
-}
-
 
 void scrollCallback (GLFWwindow* window, double xpos, double ypos)
 {
@@ -547,12 +585,11 @@ void mouseCallback (GLFWwindow* window, double xposIn, double yposIn)
 	camera.ProcessMouseMovement (xoffset, yoffset);
 }
 
+/// <summary>
+/// Process inputs regarding camera movement/properties
+/// </summary>
 void processInput (GLFWwindow* window)
 {
-	if (glfwGetKey (window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-		glfwSetWindowShouldClose (window, true);
-	}
-
 	if (glfwGetKey (window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
 		camera.ProcessKeyboard (MOVE_FAST, deltaTime);
 	else
@@ -572,6 +609,10 @@ void processInput (GLFWwindow* window)
 		camera.ProcessKeyboard (DOWN, deltaTime);
 }
 
+/// <summary>
+/// Process input for camera position changes
+/// </summary>
+/// <param name="lightPos">The light pos to change</param>
 void processLightInput (GLFWwindow* window, glm::vec3& lightPos, float deltaTime)
 {
 	float amountToMove = 1.f * deltaTime;
